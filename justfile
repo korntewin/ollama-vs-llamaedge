@@ -1,5 +1,5 @@
 model_name := "Llama-3.2-3B-Instruct-Q8_0.gguf"
-startup_time := "1m"
+hatch_rate := "0.2"
 run_time := "3m"
 user_count := "3"
 
@@ -37,20 +37,27 @@ download-model:
         echo "{{model_name}} already exists."; \
     fi
 
+# Force various parameters to be the same as ollama
 run-llamaedge-server: install-llamaedge download-model 
     wasmedge --dir .:. --nn-preload default:GGML:AUTO:models/{{model_name}} \
-    llamaedge/llama-api-server.wasm \
-    --prompt-template llama-3-chat \
-    --ctx-size 128000 \
-    --port 11401 \
-    --model-name llama3
+        llamaedge/llama-api-server.wasm \
+        --prompt-template llama-3-chat \
+        --port 11401 \
+        --ctx-size 8192 \
+        --batch-size 1024 \
+        --ubatch-size 512 \
+        --n-predict 100 \
+        --threads 10 \
+        --temp 1.0 \
+        --top-p 1.0 \
+        --model-name llama3
 
 run-ollama-server: install-ollama download-model
     ollama create llama3 -f ollama/Modelfile;
-    OLLAMA_HOST=localhost:11400 ollama serve 
+    OLLAMA_HOST=localhost:11400 ollama serve
 
-load-test-llamaedge:
-    MODEL=llamaedge cargo run --release -- --startup-time {{startup_time}} --run-time {{run_time}} -u {{user_count}}
+load-test-llamaedge: 
+    MODEL=llamaedge cargo run --release -- -r {{hatch_rate}} --run-time {{run_time}} -u {{user_count}}
 
-load-test-ollama:
-    MODEL=ollama cargo run --release -- --startup-time {{startup_time}} --run-time {{run_time}} -u {{user_count}}
+load-test-ollama: 
+    MODEL=ollama cargo run --release -- -r {{hatch_rate}} --run-time {{run_time}} -u {{user_count}}
