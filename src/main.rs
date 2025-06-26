@@ -1,23 +1,16 @@
+mod dto;
+
+use crate::dto::{ChatMessage, ChatRequest, ChatResponse};
 use goose::prelude::*;
 use reqwest::{header, Client};
-use serde::Serialize;
 use std::env;
+use std::sync::{LazyLock, Mutex};
+
+static TOTAL_COMPLETION_TOKENS: LazyLock<Mutex<u64>> = LazyLock::new(|| Mutex::new(0));
 
 const LLAMAEDGE_API_BASE_URL: &str = "http://localhost:11401";
 const OLLAMA_API_BASE_URL: &str = "http://localhost:11400";
 const API_PATH: &str = "/v1/chat/completions";
-
-#[derive(Serialize)]
-struct ChatMessage<'a> {
-    role: &'a str,
-    content: &'a str,
-}
-
-#[derive(Serialize)]
-struct ChatRequest<'a> {
-    model: &'a str,
-    messages: Vec<ChatMessage<'a>>,
-}
 
 async fn setup_custom_client(user: &mut GooseUser) -> TransactionResult {
     let api_key = env::var("OPENAI_API_KEY").unwrap_or("".to_string());
@@ -53,7 +46,14 @@ async fn llamaedge_loadtest_task(user: &mut GooseUser) -> TransactionResult {
         ],
     };
 
-    let _response = user.post_json(API_PATH, &payload).await?;
+    let goose_response = user.post_json(API_PATH, &payload).await?;
+
+    if let Ok(reqwest_response) = goose_response.response {
+        if let Ok(response_json) = reqwest_response.json::<ChatResponse>().await {
+            let mut total_tokens = TOTAL_COMPLETION_TOKENS.lock().unwrap();
+            *total_tokens += response_json.usage.completion_tokens;
+        }
+    }
 
     Ok(())
 }
@@ -76,7 +76,24 @@ async fn main() -> Result<(), GooseError> {
         _ => panic!("Invalid model specified, use 'llamaedge' or 'ollama'"),
     });
 
-    goose_attack.execute().await?;
+    let goose_metrics = goose_attack.execute().await?;
+
+    let total_tokens = *TOTAL_COMPLETION_TOKENS.lock().unwrap();
+    let total_time_in_secs = goose_metrics.duration as f64;
+
+    if total_time_in_secs > 0.0 {
+        let tokens_per_sec = total_tokens as f64 / total_time_in_secs;
+        println!();
+        println!("##################################################");
+        println!("# Summary                                        #");
+        println!("##################################################");
+        println!("Total completion tokens: {}", total_tokens);
+        println!("Total time: {:.2}s", total_time_in_secs);
+        println!("Tokens per second: {:.2}", tokens_per_sec);
+        println!("##################################################");
+    } else {
+        println!("Not enough time elapsed to calculate tokens per second.");
+    }
 
     Ok(())
 }

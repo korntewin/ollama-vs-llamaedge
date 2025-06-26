@@ -4,4 +4,4 @@ PARAMETER top_p 1
 PARAMETER repeat_penalty 1.1
 PARAMETER presence_penalty 0
 PARAMETER frequency_penalty 0
-PARAMETER num_predict 100
+PARAMETER num_predict 50

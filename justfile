@@ -46,7 +46,7 @@ run-llamaedge-server: install-llamaedge download-model
         --ctx-size 8192 \
         --batch-size 1024 \
         --ubatch-size 512 \
-        --n-predict 100 \
+        --n-predict 50 \
         --threads 10 \
         --temp 1.0 \
         --top-p 1.0 \
