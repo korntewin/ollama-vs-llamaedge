@@ -5,3 +5,5 @@ llamaedge/*
 
 models/*
 !models/.gitkeep
+
+.DS_Store

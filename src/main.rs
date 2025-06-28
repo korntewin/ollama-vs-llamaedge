@@ -8,6 +8,7 @@ use std::sync::{LazyLock, Mutex};
 
 static TOTAL_COMPLETION_TOKENS: LazyLock<Mutex<u64>> = LazyLock::new(|| Mutex::new(0));
 
+const LMSTUDIO_API_BASE_URL: &str = "http://localhost:11402";
 const LLAMAEDGE_API_BASE_URL: &str = "http://localhost:11401";
 const OLLAMA_API_BASE_URL: &str = "http://localhost:11400";
 const API_PATH: &str = "/v1/chat/completions";
@@ -73,6 +74,7 @@ async fn main() -> Result<(), GooseError> {
     let goose_attack = GooseAttack::initialize()?.register_scenario(match model.as_str() {
         "llamaedge" => scenario.set_host(LLAMAEDGE_API_BASE_URL),
         "ollama" => scenario.set_host(OLLAMA_API_BASE_URL),
+        "lmstudio" => scenario.set_host(LMSTUDIO_API_BASE_URL),
         _ => panic!("Invalid model specified, use 'llamaedge' or 'ollama'"),
     });
 

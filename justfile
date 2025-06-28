@@ -61,3 +61,6 @@ load-test-llamaedge:
 
 load-test-ollama: 
     MODEL=ollama cargo run --release -- -r {{hatch_rate}} --run-time {{run_time}} -u {{user_count}}
+
+load-test-lmstudio: 
+    MODEL=lmstudio cargo run --release -- -r {{hatch_rate}} --run-time {{run_time}} -u {{user_count}}
